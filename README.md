@@ -39,7 +39,7 @@ eosio.docker up -d # eosio.docker wraps docker-compose
 
 eosio.tail & # Tails all docker container, empty block log messages are hidden
 
-eosio.docker down # Stop all containers, data is saved unless eosio.init is called again
+./test.sh # your own compile deploy and test script (example below)
 
 cleos get table # any cleos command
 
@@ -47,9 +47,11 @@ keosd ls # run a command in the wallet container
 
 eosiocpp -n $(eosio.dir)/mycontract # smart contract creator / compiler
 sudo chown $(whoami):$(whoami) mycontract
+
+eosio.docker down # Stop all containers, data is saved unless eosio.init is called again
 ```
 
-Init and test scripts can make for a quick block-chain resets and testing.  You
+Init and test scripts can make for a quick blockchain reset and testing.  You
 will create theses.
 
 Run `myproject/mycontract/init.sh` after running `eosio.init`:
@@ -57,12 +59,11 @@ Run `myproject/mycontract/init.sh` after running `eosio.init`:
 set -o xtrace
 eosio.unlock 1> /dev/null || true
 
-cleos create account eosio maincontract $EOSIO_DOCKER_PUBLIC_KEY
+cleos create account eosio mycontract $EOSIO_DOCKER_PUBLIC_KEY
 # ...
 ```
 
-Compile re-deploy and test (cleos, etc)
-> myproject/mycontract/test.sh
+Run `myproject/mycontract/test.sh` to compile re-deploy and test:
 ```bash
 set -o errexit
 
@@ -70,7 +71,7 @@ eosio.unlock 1> /dev/null || true
 
 set -o xtrace
 
-# eosio.init && ./init.sh
+# eosio.init && ./init.sh # reset everything
 eosio.build && eosio.deploy
 
 cleos push action ...
@@ -78,8 +79,8 @@ cleos push action ...
 
 # runwatch
 
-For quick re-deploys and testing a simple `runwatch` may help.  This is not
-part of the runtime control environment.
+For quick re-deploys and testing a `runwatch` function may be used to detect
+files that changed or were saved.  This is not part of the runtime control environment.
 
 ```bash
 # Save in ./bash_aliases
