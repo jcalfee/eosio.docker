@@ -33,22 +33,79 @@ $ eosio.[tab][tab]
 Usage:
 ```bash
 eosio.init # Create or re-create persistent docker volumes
+eosio.docker up -d # eosio.docker wraps docker-compose
 
-eosio.docker up -d # eosio.docker wrappes docker-compose
+./init.sh # create your own setup here (example below)
 
 eosio.tail & # Tails all docker container, empty block log messages are hidden
 
-./init.sh # Initial accounts for your contract
-./test.sh # Compile re-deploy and test (cleos, etc)
-eosio.docker down # Stop all containers, data is saved unless eosio.init is used
+eosio.docker down # Stop all containers, data is saved unless eosio.init is called again
+
 cleos get table # any cleos command
+
 keosd ls # run a command in the wallet container
 
 eosiocpp -n $(eosio.dir)/mycontract # smart contract creator / compiler
 sudo chown $(whoami):$(whoami) mycontract
 ```
 
-Build and deploy:
+Init and test scripts can make for a quick block-chain resets and testing.  You
+will create theses.
+
+Run `myproject/mycontract/init.sh` after running `eosio.init`:
+```bash
+set -o xtrace
+eosio.unlock 1> /dev/null || true
+
+cleos create account eosio maincontract $EOSIO_DOCKER_PUBLIC_KEY
+# ...
+```
+
+Compile re-deploy and test (cleos, etc)
+> myproject/mycontract/test.sh
+```bash
+set -o errexit
+
+eosio.unlock 1> /dev/null || true
+
+set -o xtrace
+
+# eosio.init && ./init.sh
+eosio.build && eosio.deploy
+
+cleos push action ...
+```
+
+# runwatch
+
+For quick re-deploys and testing a simple `runwatch` may help.  This is not
+part of the runtime control environment.
+
+```bash
+# Save in ./bash_aliases
+function runwatch() {
+  # sudo apt install -y inotify-tools
+  cmd=$1
+  shift 1
+  watch_files="$@"
+
+  while :
+  do
+    echo ++ $cmd
+    eval "$cmd"
+    echo
+    inotifywait --quiet --recursive --event close_write $watch_files || break
+    echo -e "\n\n\n"
+  done
+}
+```
+
+```bash
+runwatch ./test.sh *.?pp
+```
+
+# Build and Deploy
+
 ```bash
 cd myproject
 eosio.build mycontract
@@ -59,12 +116,20 @@ cd myproject/mycontract
 eosio.build && eosio.deploy
 ```
 
-Equivalent paths:
+# Paths
+
+Host system and docker equivalent paths:
+
 ```bash
 cd myproject
 ls mycontract
 keosd ls $(eosio.dir)/mycontract
 ```
+
+Using docker compose's `--workdir` option in `rc.sh` might make `eosio.dir`
+optional.  This option is still new and not well supported.
+
+# Docker compose
 
 Be mindful that docker-compose will name its instances after your install
 directory.
